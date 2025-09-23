@@ -153,3 +153,14 @@ def inicializar_banco():
 
     conn.commit()
     conn.close()
+    
+# ❌ Excluir atendimento
+def excluir_atendimento(nome, data, hora):
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute("""
+        DELETE FROM atendimentos
+        WHERE nome = ? AND data = ? AND hora = ?
+    """, (nome, data, hora))
+    conn.commit()
+    conn.close()

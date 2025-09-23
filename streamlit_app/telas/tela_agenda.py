@@ -1,75 +1,90 @@
+from streamlit_calendar import calendar
+import streamlit as st
+import datetime
+from db import buscar_atendimentos_por_offset, excluir_atendimento
+
 def tela_agenda():
-    import streamlit as st
-    from db import buscar_atendimentos_por_offset
     if "usuario_logado" not in st.session_state:
         st.warning("⚠️ Você precisa estar logado para acessar esta página.")
         st.stop()
+
     st.set_page_config(page_title="Agenda Semanal", layout="wide")
     st.title("📅 Agenda da Semana")
-    from db import listar_pacientes, inserir_atendimento
-    atendimentos, inicio, fim = buscar_atendimentos_por_offset(0)
-    import datetime
-    # Corrigir caso inicio/fim sejam None
-    if not inicio or not fim:
-        hoje = datetime.date.today()
-        inicio = (hoje - datetime.timedelta(days=hoje.weekday())).strftime("%d/%m/%Y")
-        fim = (hoje + datetime.timedelta(days=5-hoje.weekday())).strftime("%d/%m/%Y")
-    st.markdown("### Agendar novo atendimento")
-    pacientes = listar_pacientes()
-    nomes_pacientes = [p[1] for p in pacientes] if pacientes else []
-    with st.form("form_agendar"):
-        paciente = st.selectbox("Paciente", nomes_pacientes)
-        data = st.date_input("Data do atendimento")
-        hora = st.time_input("Hora do atendimento")
-        tipo = st.selectbox("Tipo de atendimento", ["Consulta", "Retorno", "Sessão"])
-        enviar = st.form_submit_button("Agendar")
-        if enviar:
-            if not paciente:
-                st.warning("Selecione um paciente.")
-            else:
-                inserir_atendimento(paciente, str(data), str(hora), tipo)
-                st.success(f"Atendimento para '{paciente}' agendado com sucesso!")
-                st.rerun()
 
-    import datetime
-    st.markdown(f"**Semana de {inicio} a {fim}**")
-    dias_semana = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"]
-    agenda = {dia: {} for dia in dias_semana}  # {dia: {hora: [atendimentos]}}
-    horarios_padrao = [f"{h:02d}:00" for h in range(7, 21)]  # 07:00 até 20:00
+    # 🔄 Seletor de semana
+    offset = st.slider("Semana", min_value=0, max_value=12, value=0, help="Escolha a semana para visualizar")
+    atendimentos, inicio, fim = buscar_atendimentos_por_offset(offset)
+
+
+    cores_por_tipo = {
+        "Consulta": "#90caf9",
+        "Retorno": "#a5d6a7",
+        "Sessão": "#f48fb1"
+    }
+
+    eventos = []
     if atendimentos:
         for nome, data, hora, tipo in atendimentos:
             try:
-                dt = datetime.datetime.strptime(data, "%Y-%m-%d")
-                dia_idx = dt.weekday()
-                if dia_idx < 6:
-                    dia = dias_semana[dia_idx]
-                    if hora not in agenda[dia]:
-                        agenda[dia][hora] = []
-                    agenda[dia][hora].append({"nome": nome, "tipo": tipo})
-            except Exception:
+                # 🕒 Garantir formato ISO completo
+                hora_formatada = hora if len(hora.split(":")) == 3 else f"{hora}:00"
+                dt_str = f"{data}T{hora_formatada}"
+                eventos.append({
+                    "title": f"{tipo}: {nome}",
+                    "start": dt_str,
+                    "end": dt_str,
+                    "color": cores_por_tipo.get(tipo, "#e0e0e0"),
+                    "extendedProps": {
+                        "paciente": nome,
+                        "tipo": tipo,
+                        "data": data,
+                        "hora": hora_formatada
+                    }
+                })
+            except Exception as e:
+                st.error(f"Erro ao processar evento: {e}")
                 continue
-        st.markdown("<style>div[data-testid='column']{min-width:180px !important;} .calendar-cell{border:1px solid #222;padding:4px;height:40px;vertical-align:top;}</style>", unsafe_allow_html=True)
-        st.markdown("<b>Calendário semanal</b>")
-        # Cabeçalho dos dias
-        header_cols = st.columns(len(dias_semana)+1)
-        with header_cols[0]:
-            st.markdown("<b>Horário</b>", unsafe_allow_html=True)
-        for i, dia in enumerate(dias_semana):
-            with header_cols[i+1]:
-                st.markdown(f"<b>{dia}</b>", unsafe_allow_html=True)
-        # Grid de horários
-        for hora in horarios_padrao:
-            row = st.columns(len(dias_semana)+1)
-            with row[0]:
-                st.markdown(f"<span style='font-size:13px'>{hora}</span>", unsafe_allow_html=True)
-            for i, dia in enumerate(dias_semana):
-                with row[i+1]:
-                    cell = agenda[dia].get(hora, [])
-                    if cell:
-                        for item in cell:
-                            st.markdown(f"<div class='calendar-cell' style='background:#e3f2fd;border-radius:6px;margin-bottom:2px'>"
-                                        f"<b>{item['nome']}</b><br><span style='font-size:12px'>{item['tipo']}</span></div>", unsafe_allow_html=True)
-                    else:
-                        st.markdown("<div class='calendar-cell'></div>", unsafe_allow_html=True)
-    else:
-        st.info("Nenhum atendimento agendado para esta semana.")
+
+    st.markdown("### 🗓️ Visualização em calendário")
+
+    calendar_options = {
+        "initialView": "timeGridWeek",
+        "locale": "pt-br",  # 🌍 idioma português
+        "editable": False,
+        "headerToolbar": {
+            "left": "prev,next today",
+            "center": "title",
+            "right": "dayGridMonth,timeGridWeek,timeGridDay"
+        },
+        "slotMinTime": "07:00:00",
+        "slotMaxTime": "20:00:00"
+    }
+
+
+    clicked_event = calendar(events=eventos, options=calendar_options)
+
+    if clicked_event:
+        props = clicked_event.get("extendedProps", {})
+        paciente = props.get("paciente")
+        tipo = props.get("tipo")
+        data = props.get("data")
+        hora = props.get("hora")
+
+        st.markdown("### 📋 Detalhes do atendimento")
+        with st.container():
+            st.write(f"**Paciente:** {paciente}")
+            st.write(f"**Tipo:** {tipo}")
+            st.write(f"**Data:** {data}")
+            st.write(f"**Hora:** {hora}")
+
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("✏️ Editar atendimento"):
+                    st.warning("Função de edição ainda não implementada.")
+            with col2:
+                if st.button("🗑️ Excluir atendimento"):
+                    confirm = st.checkbox("Confirmar exclusão")
+                    if confirm:
+                        excluir_atendimento(paciente, data, hora)
+                        st.success("✅ Atendimento excluído com sucesso!")
+                        st.rerun()

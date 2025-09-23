@@ -6,7 +6,7 @@ from telas import tela_cadastro  # Cadastro de usuário
 from telas import tela_agenda
 from telas import tela_cadastro_paciente
 from telas import tela_lista_pacientes
-
+from telas import tela_historico
 
 # 🔧 Inicializa banco
 inicializar_banco()
@@ -27,6 +27,9 @@ if "usuario_logado" in st.session_state:
             st.rerun()
         if st.button("➕ Cadastrar Paciente"):
             st.session_state["tela"] = "cadastro_paciente"
+            st.rerun()
+        if st.button("➕ Ver Historico"):
+            st.session_state["tela"] = "lista_historico"
             st.rerun()
         if st.button("🚪 Sair"):
             st.session_state.clear()

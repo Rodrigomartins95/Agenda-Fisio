@@ -75,7 +75,7 @@ def tela_agenda():
             st.write(f"**Paciente:** {paciente}")
             st.write(f"**Tipo:** {tipo}")
 
-            # 🛡️ Proteção contra erro de data
+            # ✅ Ajuste final: proteção contra formato inválido de data
             try:
                 if isinstance(data, str):
                     data_formatada = data.split("T")[0] if "T" in data else data
@@ -84,6 +84,7 @@ def tela_agenda():
                     data_obj = data
                 else:
                     raise ValueError("Formato de data inválido")
+
                 st.write(f"**Data:** {data_obj.strftime('%d-%m-%Y')}")
             except Exception as e:
                 st.write("**Data:** inválida")

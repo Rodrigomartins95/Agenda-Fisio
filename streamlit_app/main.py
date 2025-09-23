@@ -8,7 +8,6 @@ from telas import tela_cadastro_paciente
 from telas import tela_lista_pacientes
 
 
-
 # 🔧 Inicializa banco
 inicializar_banco()
 

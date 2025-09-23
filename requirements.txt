@@ -1,7 +1,5 @@
 streamlit
 bcrypt
-sqlite3
-
-git add requirements.txt
-git commit -m "Adiciona requirements.txt"
-git push
+python-dotenv
+--- IGNORE ---
+--- IGNORE ---

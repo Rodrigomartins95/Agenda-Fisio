@@ -79,6 +79,9 @@ def tela_agenda():
 
             with st.form("form_editar_atendimento"):
                 try:
+                    if not isinstance(data, str):
+                        raise TypeError("Data não é uma string ISO válida")
+
                     data_formatada = data.split("T")[0] if "T" in data else data
                     nova_data = st.date_input("Nova data", value=datetime.date.fromisoformat(data_formatada))
 
@@ -87,14 +90,11 @@ def tela_agenda():
                         hora_formatada += ":00"
                     nova_hora = st.time_input("Nova hora", value=datetime.time.fromisoformat(hora_formatada))
 
-                    novo_tipo = st.selectbox(
-                        "Novo tipo",
-                        ["Consulta", "Retorno", "Sessão"],
-                        index=["Consulta", "Retorno", "Sessão"].index(tipo)
-                    )
+                    novo_tipo = st.selectbox("Novo tipo", ["Consulta", "Retorno", "Sessão"], index=["Consulta", "Retorno", "Sessão"].index(tipo))
                 except Exception as e:
                     st.error(f"❌ Erro ao interpretar data ou hora: {e}")
                     st.stop()
+
 
                 submitted = st.form_submit_button("💾 Salvar alterações")
                 if submitted:

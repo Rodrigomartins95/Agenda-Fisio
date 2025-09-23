@@ -1,7 +1,7 @@
 from streamlit_calendar import calendar
 import streamlit as st
 import datetime
-from db import buscar_atendimentos_por_offset, excluir_atendimento
+from db import buscar_atendimentos_por_offset, excluir_atendimento, limpar_atendimentos_orfaos
 
 def tela_agenda():
     if "usuario_logado" not in st.session_state:
@@ -14,13 +14,6 @@ def tela_agenda():
     # 🔄 Seletor de semana
     offset = st.slider("Semana", min_value=0, max_value=12, value=0, help="Escolha a semana para visualizar")
     atendimentos, inicio, fim = buscar_atendimentos_por_offset(offset)
-
-    st.markdown(f"📆 Semana de **{inicio}** até **{fim}**")
-
-    # 🛠️ Painel de Debug
-    with st.expander("🛠️ Painel de Debug"):
-        st.write("📆 Intervalo da semana:", {"início": inicio, "fim": fim})
-        st.write("📋 Atendimentos da semana:", atendimentos)
 
     cores_por_tipo = {
         "Consulta": "#90caf9",
@@ -49,12 +42,6 @@ def tela_agenda():
                 })
             except Exception as e:
                 st.error(f"Erro ao montar evento: {e}")
-    # 🧪 Mostrar eventos gerados
-    with st.expander("📦 Eventos enviados ao calendário"):
-        st.write("📅 Eventos:", eventos)
-        st.json(eventos)
-
-    st.markdown("### 🗓️ Visualização em calendário")
 
     calendar_options = {
         "initialView": "timeGridWeek",
@@ -96,3 +83,10 @@ def tela_agenda():
                         excluir_atendimento(paciente, data, hora)
                         st.success("✅ Atendimento excluído com sucesso!")
                         st.rerun()
+
+    # 🧹 Botão de limpeza fora do bloco de evento
+    st.markdown("### 🧹 Limpeza de atendimentos órfãos")
+    if st.button("Limpar atendimentos sem paciente"):
+        limpar_atendimentos_orfaos()
+        st.success("✅ Atendimentos órfãos removidos com sucesso!")
+        st.rerun()

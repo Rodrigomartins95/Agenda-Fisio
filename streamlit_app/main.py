@@ -28,8 +28,11 @@ if "usuario_logado" in st.session_state:
         if st.button("➕ Cadastrar Paciente"):
             st.session_state["tela"] = "cadastro_paciente"
             st.rerun()
-        if st.button("➕ Ver Historico"):
+        if st.button("Ver Historico"):
             st.session_state["tela"] = "lista_historico"
+            st.rerun()
+        if st.button("Paciente"):
+            st.session_state["tela"] = "tela_paciente"
             st.rerun()
         if st.button("🚪 Sair"):
             st.session_state.clear()

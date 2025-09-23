@@ -1,41 +1,39 @@
+import streamlit as st
+from db import inserir_paciente, inserir_atendimento
+import datetime
+
 def tela_cadastro_paciente():
-    import streamlit as st
-    from db import inserir_paciente
-    if "usuario_logado" not in st.session_state:
-        st.warning("⚠️ Você precisa estar logado para acessar esta página.")
-        st.stop()
-    st.set_page_config(page_title="➕ Cadastrar Paciente", layout="centered")
-    st.title("➕ Cadastro de Paciente")
-    from db import inserir_atendimento
-    with st.form("form_paciente"):
-        nome = st.text_input("Nome completo do paciente")
-        telefone = st.text_input("Telefone (WhatsApp)")
-        obs = st.text_area("Observações clínicas", height=150)
-        fisioterapeuta = st.text_input("Fisioterapeuta responsável", value=st.session_state.get("fisioterapeuta", ""), disabled=True)
-        dias_semana = st.multiselect("Dias da semana para atendimento", ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"])
-        hora_atendimento = st.time_input("Hora do atendimento padrão")
-        tipo = st.selectbox("Tipo de atendimento", ["Consulta", "Retorno", "Sessão"])
-        qtd_semanas = st.number_input("Quantas semanas?", min_value=1, max_value=12, value=1)
-        enviado = st.form_submit_button("Salvar")
-        if enviado:
-            if not nome or not telefone:
-                st.warning("⚠️ Nome e telefone são obrigatórios.")
-            elif not dias_semana:
-                st.warning("Selecione pelo menos um dia da semana.")
-            else:
-                if st.session_state.get("ultimo_paciente_cadastrado") == nome:
-                    st.info(f"Paciente '{nome}' já foi cadastrado!")
-                else:
-                    inserir_paciente(nome, telefone, obs, fisioterapeuta)
-                    st.session_state["ultimo_paciente_cadastrado"] = nome
-                    st.success(f"✅ Paciente '{nome}' cadastrado com sucesso!")
-                    # Agendar atendimentos automaticamente
-                    import datetime
-                    dias_map = {"Segunda": 0, "Terça": 1, "Quarta": 2, "Quinta": 3, "Sexta": 4, "Sábado": 5}
-                    hoje = datetime.date.today()
-                    for semana in range(int(qtd_semanas)):
-                        for dia in dias_semana:
-                            # Encontrar próxima data do dia da semana
-                            delta = (dias_map[dia] - hoje.weekday() + 7) % 7 + semana*7
-                            data_atendimento = hoje + datetime.timedelta(days=delta)
-                            inserir_atendimento(nome, str(data_atendimento), str(hora_atendimento), tipo)
+    st.title("👤 Cadastro de Paciente")
+
+    # Inicializa estado
+    if "paciente_salvo" not in st.session_state:
+        st.session_state.paciente_salvo = False
+
+    nome = st.text_input("Nome completo")
+    telefone = st.text_input("Telefone")
+    email = st.text_input("Email")
+    observacoes = st.text_area("Observações")
+
+    dias_semana = st.multiselect("Dias da semana para atendimento", ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"])
+    semanas = st.slider("Número de semanas", 1, 12, 4)
+    hora = st.time_input("Horário do atendimento", value=datetime.time(9, 0))
+
+    tipo = st.selectbox("Tipo de atendimento", ["Sessão", "Consulta", "Retorno"])
+
+    if st.button("Salvar paciente"):
+        paciente_id = inserir_paciente(nome, telefone, email, observacoes)
+
+        hoje = datetime.date.today()
+        dias_map = {
+            "Segunda": 0, "Terça": 1, "Quarta": 2,
+            "Quinta": 3, "Sexta": 4
+        }
+
+        for semana in range(semanas):
+            for dia in dias_semana:
+                delta_dias = dias_map[dia] - hoje.weekday() + (semana * 7)
+                data_atendimento = hoje + datetime.timedelta(days=delta_dias)
+                if data_atendimento >= hoje:
+                    inserir_atendimento(paciente_id, str(data_atendimento), str(hora), tipo)
+
+        st.success("✅ Paciente cadastrado com atendimentos agendados!")

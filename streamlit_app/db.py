@@ -50,13 +50,26 @@ def autenticar_usuario(email, senha_digitada):
     return False
 
 # 👩‍⚕️ Inserir paciente
-def inserir_paciente(nome, telefone, observacoes, fisioterapeuta):
+def inserir_paciente(nome, telefone, email, observacoes):
     conn = conectar()
     cursor = conn.cursor()
     cursor.execute("""
-        INSERT INTO pacientes (nome, telefone, observacoes, fisioterapeuta)
+        INSERT INTO pacientes (nome, telefone, email, observacoes)
         VALUES (?, ?, ?, ?)
-    """, (nome, telefone, observacoes, fisioterapeuta))
+    """, (nome, telefone, email, observacoes))
+    conn.commit()
+    paciente_id = cursor.lastrowid
+    conn.close()
+    return paciente_id
+
+# 🧹 Limpar atendimentos órfãos
+def limpar_atendimentos_orfaos():
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute("""
+        DELETE FROM atendimentos
+        WHERE paciente_id NOT IN (SELECT id FROM pacientes)
+    """)
     conn.commit()
     conn.close()
 
@@ -65,21 +78,64 @@ def inserir_paciente(nome, telefone, observacoes, fisioterapeuta):
 def listar_pacientes():
     conn = conectar()
     cursor = conn.cursor()
-    cursor.execute("SELECT id, nome, telefone, observacoes FROM pacientes ORDER BY nome")
+    cursor.execute("""
+        SELECT id, nome, telefone, observacoes
+        FROM pacientes
+        ORDER BY nome
+    """)
     resultado = cursor.fetchall()
     conn.close()
     return resultado
 
-# 🗓️ Inserir atendimento
-def inserir_atendimento(nome, data, hora, tipo):
+# 📅 Buscar atendimentos por paciente
+def buscar_atendimentos_por_paciente(paciente_id):
     conn = conectar()
     cursor = conn.cursor()
     cursor.execute("""
-        INSERT INTO atendimentos (nome, data, hora, tipo)
-        VALUES (?, ?, ?, ?)
-    """, (nome, data, hora, tipo))
+        SELECT data, hora, tipo
+        FROM atendimentos
+        WHERE paciente_id = ?
+        ORDER BY data, hora
+    """, (paciente_id,))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado
+
+# ❌ Excluir paciente e seus atendimentos
+def excluir_paciente(paciente_id):
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM atendimentos WHERE paciente_id = ?", (paciente_id,))
+    cursor.execute("DELETE FROM pacientes WHERE id = ?", (paciente_id,))
     conn.commit()
     conn.close()
+
+# 📈 Evolução por paciente
+def evolucao_por_paciente(paciente_id):
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT data, tipo
+        FROM atendimentos
+        WHERE paciente_id = ?
+        ORDER BY data
+    """, (paciente_id,))
+    resultado = cursor.fetchall()
+    conn.close()
+    return resultado
+
+
+# 🗓️ Inserir atendimento
+def inserir_atendimento(paciente_id, data, hora, tipo):
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO atendimentos (paciente_id, data, hora, tipo)
+        VALUES (?, ?, ?, ?)
+    """, (paciente_id, data, hora, tipo))
+    conn.commit()
+    conn.close()
+
 
 # 📅 Buscar atendimentos por semana (offset = 0 é semana atual)
 def buscar_atendimentos_por_offset(offset):
@@ -108,10 +164,16 @@ def buscar_atendimentos_por_offset(offset):
 def listar_historico():
     conn = conectar()
     cursor = conn.cursor()
-    cursor.execute("SELECT nome, data, hora, tipo FROM atendimentos ORDER BY data DESC, hora DESC")
+    cursor.execute("""
+        SELECT pacientes.nome, atendimentos.data, atendimentos.hora, atendimentos.tipo
+        FROM atendimentos
+        JOIN pacientes ON atendimentos.paciente_id = pacientes.id
+        ORDER BY atendimentos.data DESC, atendimentos.hora DESC
+    """)
     resultado = cursor.fetchall()
     conn.close()
     return resultado
+
 
 # 🧱 Inicializar banco com estrutura correta
 def inicializar_banco():

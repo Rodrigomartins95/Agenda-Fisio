@@ -72,12 +72,12 @@ def tela_agenda():
 
         st.markdown("### 📋 Detalhes do atendimento")
         with st.container():
-            st.write(f"**Paciente:** {paciente}")
-            st.write(f"**Tipo:** {tipo}")
+            st.write(f"**Paciente:** {paciente if paciente else 'Não informado'}")
+            st.write(f"**Tipo:** {tipo if tipo else 'Não informado'}")
 
-            # ✅ Ajuste final: proteção contra formato inválido de data
+            # Proteção contra data inválida
             try:
-                if isinstance(data, str):
+                if isinstance(data, str) and data:
                     data_formatada = data.split("T")[0] if "T" in data else data
                     data_obj = datetime.date.fromisoformat(data_formatada)
                 elif isinstance(data, datetime.date):
@@ -87,12 +87,13 @@ def tela_agenda():
 
                 st.write(f"**Data:** {data_obj.strftime('%d-%m-%Y')}")
             except Exception as e:
-                st.write("**Data:** inválida")
+                st.write("**Data:** Não informada ou inválida")
                 st.error(f"❌ Erro ao formatar a data: {e}")
                 data_obj = datetime.date.today()
 
-            st.write(f"**Hora:** {hora if hora else '00:00'}")
+            st.write(f"**Hora:** {hora if hora else 'Não informada'}")
 
+            
             with st.form("form_editar_atendimento"):
                 try:
                     nova_data = st.date_input("Nova data", value=data_obj)

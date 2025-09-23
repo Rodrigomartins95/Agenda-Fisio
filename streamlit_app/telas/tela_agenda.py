@@ -1,5 +1,5 @@
-from streamlit_calendar import calendar
 import streamlit as st
+from streamlit_calendar import calendar
 import datetime
 from db import (
     buscar_atendimentos_por_offset,
@@ -17,6 +17,44 @@ def tela_agenda():
     st.set_page_config(page_title="Agenda Semanal", layout="wide")
     st.title("📅 Agenda da Semana")
 
+    # 🎨 Estilo visual do calendário
+    st.markdown("""
+    <style>
+    :root {
+      --fc-button-bg-color: #4CAF50;
+      --fc-button-border-color: #388E3C;
+      --fc-button-text-color: white;
+
+      --fc-event-bg-color: #2196F3;
+      --fc-event-border-color: #1976D2;
+      --fc-event-text-color: white;
+
+      --fc-today-bg-color: #FFFDE7;
+      --fc-page-bg-color: #FAFAFA;
+    }
+
+    .fc-button {
+      border-radius: 6px !important;
+      font-weight: bold !important;
+      transition: background-color 0.3s ease;
+    }
+
+    .fc-button:hover {
+      background-color: #66BB6A !important;
+    }
+
+    .fc-event {
+      border-radius: 8px !important;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .fc-day-today {
+      background-color: #FFFDE7 !important;
+      border: 1px solid #FFEB3B !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     offset = st.slider("Semana", min_value=0, max_value=12, value=0, help="Escolha a semana para visualizar")
     atendimentos, inicio, fim = buscar_atendimentos_por_offset(offset)
 
@@ -31,9 +69,8 @@ def tela_agenda():
         for atendimento in atendimentos:
             try:
                 nome, data, hora, tipo = atendimento
-
                 if not all([nome, data, hora, tipo]):
-                    continue  # pula atendimentos incompletos
+                    continue
 
                 hora_formatada = hora if len(hora.split(":")) == 3 else f"{hora}:00"
                 dt_str = f"{data}T{hora_formatada}"
@@ -54,20 +91,27 @@ def tela_agenda():
                 st.error(f"Erro ao montar evento: {e}")
 
     calendar_options = {
-        "initialView": "timeGridWeek",
+        "initialView": "dayGridMonth",
         "locale": "pt-br",
+        "themeSystem": "standard",
         "editable": False,
+        "height": "auto",
+        "slotMinTime": "06:00:00",
+        "slotMaxTime": "22:00:00",
+        "slotDuration": "00:30:00",
+        "slotLabelFormat": {
+            "hour": "2-digit",
+            "minute": "2-digit",
+            "hour12": False
+        },
         "headerToolbar": {
             "left": "prev,next today",
             "center": "title",
-            "right": "dayGridMonth,timeGridWeek,timeGridDay"
-        },
-        "slotMinTime": "07:00:00",
-        "slotMaxTime": "23:00:00"
+            "right": "listWeek,dayGridMonth,timeGridWeek"
+        }
     }
 
     clicked_event = calendar(events=eventos, options=calendar_options)
-    
 
     if clicked_event and "eventClick" in clicked_event:
         props = clicked_event["eventClick"]["event"].get("extendedProps", {})

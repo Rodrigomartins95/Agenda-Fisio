@@ -2,13 +2,14 @@ import streamlit as st
 import sqlite3
 import bcrypt
 from db import inicializar_banco
-from ..auth_utils import (
+from streamlit_app.auth_utils import (
     gerar_token,
     validar_token,
     salvar_token_local,
     carregar_token_local,
     limpar_token_local
 )
+
 
 def tela_login():
     # Inicializa o banco de dados

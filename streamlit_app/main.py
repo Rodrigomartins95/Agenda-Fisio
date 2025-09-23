@@ -8,6 +8,10 @@ from telas import tela_cadastro_paciente
 from telas import tela_lista_pacientes
 from telas import tela_historico
 
+from setup import verificar_banco
+verificar_banco()
+
+
 # 🔧 Inicializa banco
 inicializar_banco()
 

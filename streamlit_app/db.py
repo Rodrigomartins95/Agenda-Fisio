@@ -1,37 +1,57 @@
-def deletar_paciente(paciente_id):
-    conn = conectar()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM pacientes WHERE id = ?", (paciente_id,))
-    conn.commit()
-    conn.close()
-
-def editar_paciente(paciente_id, nome, telefone, observacoes):
-    conn = conectar()
-    cursor = conn.cursor()
-    cursor.execute("""
-        UPDATE pacientes SET nome = ?, telefone = ?, observacoes = ? WHERE id = ?
-    """, (nome, telefone, observacoes, paciente_id))
-    conn.commit()
-    conn.close()
 import sqlite3
 import bcrypt
+import os
+from datetime import date, timedelta
 
 # 🔧 Conexão com o banco
 def conectar():
-    return sqlite3.connect("agenda.db")
+    caminho_db = os.path.join(os.path.dirname(__file__), "agenda.db")
+    return sqlite3.connect(caminho_db)
+
+# 🧱 Inicializar banco com estrutura correta
+def inicializar_banco():
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE,
+            senha BLOB,
+            fisioterapeuta TEXT
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS pacientes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT,
+            telefone TEXT,
+            email TEXT,
+            observacoes TEXT,
+            fisioterapeuta TEXT
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS atendimentos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            paciente_id INTEGER,
+            data TEXT,
+            hora TEXT,
+            tipo TEXT,
+            FOREIGN KEY (paciente_id) REFERENCES pacientes(id)
+        )
+    """)
+
+    conn.commit()
+    conn.close()
 
 # 📝 Salvar novo usuário com senha segura
 def salvar_usuario(email, senha):
     senha_hash = bcrypt.hashpw(senha.encode(), bcrypt.gensalt())
     conn = conectar()
     cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS usuarios (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT UNIQUE,
-            senha BLOB
-        )
-    """)
     cursor.execute("INSERT INTO usuarios (email, senha) VALUES (?, ?)", (email, senha_hash))
     conn.commit()
     conn.close()
@@ -62,18 +82,6 @@ def inserir_paciente(nome, telefone, email, observacoes):
     conn.close()
     return paciente_id
 
-# 🧹 Limpar atendimentos órfãos
-def limpar_atendimentos_orfaos():
-    conn = conectar()
-    cursor = conn.cursor()
-    cursor.execute("""
-        DELETE FROM atendimentos
-        WHERE paciente_id NOT IN (SELECT id FROM pacientes)
-    """)
-    conn.commit()
-    conn.close()
-
-
 # 📋 Listar pacientes
 def listar_pacientes():
     conn = conectar()
@@ -101,29 +109,25 @@ def buscar_atendimentos_por_paciente(paciente_id):
     conn.close()
     return resultado
 
-# ❌ Excluir paciente e seus atendimentos
-def excluir_paciente(paciente_id):
+# 📅 Buscar atendimentos por semana (offset = 0 é semana atual)
+def buscar_atendimentos_por_offset(offset):
     conn = conectar()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM atendimentos WHERE paciente_id = ?", (paciente_id,))
-    cursor.execute("DELETE FROM pacientes WHERE id = ?", (paciente_id,))
-    conn.commit()
-    conn.close()
 
-# 📈 Evolução por paciente
-def evolucao_por_paciente(paciente_id):
-    conn = conectar()
-    cursor = conn.cursor()
+    hoje = date.today()
+    inicio_semana = hoje + timedelta(weeks=offset, days=-hoje.weekday())
+    fim_semana = inicio_semana + timedelta(days=6)
+
     cursor.execute("""
-        SELECT data, tipo
+        SELECT pacientes.nome, data, hora, tipo
         FROM atendimentos
-        WHERE paciente_id = ?
-        ORDER BY data
-    """, (paciente_id,))
+        JOIN pacientes ON atendimentos.paciente_id = pacientes.id
+        WHERE data BETWEEN ? AND ?
+        ORDER BY data, hora
+    """, (str(inicio_semana), str(fim_semana)))
     resultado = cursor.fetchall()
     conn.close()
-    return resultado
-
+    return resultado, str(inicio_semana), str(fim_semana)
 
 # 🗓️ Inserir atendimento
 def inserir_atendimento(paciente_id, data, hora, tipo):
@@ -135,30 +139,6 @@ def inserir_atendimento(paciente_id, data, hora, tipo):
     """, (paciente_id, data, hora, tipo))
     conn.commit()
     conn.close()
-
-
-# 📅 Buscar atendimentos por semana (offset = 0 é semana atual)
-def buscar_atendimentos_por_offset(offset):
-    import sqlite3
-    from datetime import date, timedelta
-
-    conn = conectar()
-    cursor = conn.cursor()
-
-    # Calcular início e fim da semana com base no offset
-    hoje = date.today()
-    inicio_semana = hoje + timedelta(weeks=offset, days=-hoje.weekday())
-    fim_semana = inicio_semana + timedelta(days=6)
-
-    cursor.execute("""
-        SELECT nome, data, hora, tipo FROM atendimentos
-        WHERE data BETWEEN ? AND ?
-        ORDER BY data, hora
-    """, (str(inicio_semana), str(fim_semana)))
-    resultado = cursor.fetchall()
-
-    conn.close()
-    return resultado, str(inicio_semana), str(fim_semana)
 
 # 📜 Histórico completo
 def listar_historico():
@@ -174,58 +154,65 @@ def listar_historico():
     conn.close()
     return resultado
 
-
-# 🧱 Inicializar banco com estrutura correta
-def inicializar_banco():
+# 📈 Evolução por paciente
+def evolucao_por_paciente(paciente_id):
     conn = conectar()
     cursor = conn.cursor()
-
-    # Tabela de usuários com senha como BLOB
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS usuarios (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT UNIQUE,
-            senha BLOB
-        )
-    """)
-    # Adiciona coluna fisioterapeuta se não existir
-    try:
-        cursor.execute("ALTER TABLE usuarios ADD COLUMN fisioterapeuta TEXT")
-    except sqlite3.OperationalError:
-        pass  # coluna já existe
-
-
-    # Tabela de atendimentos
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS atendimentos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome TEXT,
-            data TEXT,
-            hora TEXT,
-            tipo TEXT
-        )
-    """)
-    # fisioterapeuta responsavel
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS pacientes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome TEXT,
-            telefone TEXT,
-            observacoes TEXT,
-            fisioterapeuta TEXT
-        )
-    """)
-
-    conn.commit()
+        SELECT data, tipo
+        FROM atendimentos
+        WHERE paciente_id = ?
+        ORDER BY data
+    """, (paciente_id,))
+    resultado = cursor.fetchall()
     conn.close()
+    return resultado
 
 # ❌ Excluir atendimento
-def excluir_atendimento(nome, data, hora):
+def excluir_atendimento(paciente_id, data, hora):
     conn = conectar()
     cursor = conn.cursor()
     cursor.execute("""
         DELETE FROM atendimentos
-        WHERE nome = ? AND data = ? AND hora = ?
-    """, (nome, data, hora))
+        WHERE paciente_id = ? AND data = ? AND hora = ?
+    """, (paciente_id, data, hora))
+    conn.commit()
+    conn.close()
+
+# ❌ Excluir paciente e seus atendimentos
+def excluir_paciente(paciente_id):
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM atendimentos WHERE paciente_id = ?", (paciente_id,))
+    cursor.execute("DELETE FROM pacientes WHERE id = ?", (paciente_id,))
+    conn.commit()
+    conn.close()
+
+# 🧹 Limpar atendimentos órfãos
+def limpar_atendimentos_orfaos():
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute("""
+        DELETE FROM atendimentos
+        WHERE paciente_id NOT IN (SELECT id FROM pacientes)
+    """)
+    conn.commit()
+    conn.close()
+
+# ✏️ Editar paciente
+def editar_paciente(paciente_id, nome, telefone, observacoes):
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE pacientes SET nome = ?, telefone = ?, observacoes = ? WHERE id = ?
+    """, (nome, telefone, observacoes, paciente_id))
+    conn.commit()
+    conn.close()
+
+# ❌ Deletar paciente (sem excluir atendimentos)
+def deletar_paciente(paciente_id):
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM pacientes WHERE id = ?", (paciente_id,))
     conn.commit()
     conn.close()

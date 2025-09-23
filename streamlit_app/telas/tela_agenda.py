@@ -86,7 +86,7 @@ def tela_agenda():
                     raise ValueError("Formato de data inválido")
                 st.write(f"**Data:** {data_obj.strftime('%d-%m-%Y')}")
             except Exception as e:
-                st.write(f"**Data:** {data} (inválida)")
+                st.write("**Data:** inválida")
                 st.error(f"❌ Erro ao formatar a data: {e}")
                 data_obj = datetime.date.today()
 
@@ -103,8 +103,9 @@ def tela_agenda():
                         hora_formatada += ":00"
                     nova_hora = st.time_input("Nova hora", value=datetime.time.fromisoformat(hora_formatada))
 
-                    novo_tipo = st.selectbox("Novo tipo", ["Consulta", "Retorno", "Sessão"],
-                                             index=["Consulta", "Retorno", "Sessão"].index(tipo))
+                    opcoes_tipo = ["Consulta", "Retorno", "Sessão"]
+                    indice_tipo = opcoes_tipo.index(tipo) if tipo in opcoes_tipo else 0
+                    novo_tipo = st.selectbox("Novo tipo", opcoes_tipo, index=indice_tipo)
                 except Exception as e:
                     st.error(f"❌ Erro ao interpretar data ou hora: {e}")
                     st.stop()

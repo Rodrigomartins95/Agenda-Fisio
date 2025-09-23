@@ -44,8 +44,7 @@ if "usuario_logado" in st.session_state:
             st.session_state["tela"] = "tela_paciente"
             st.rerun()
         if st.button("🚪 Sair"):
-            from auth_utils import limpar_token_local
-            limpar_token_local()
+            # 🔒 Removido uso de auth_utils
             st.session_state.clear()
             st.rerun()
 

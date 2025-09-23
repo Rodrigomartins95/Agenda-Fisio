@@ -2,30 +2,10 @@ import streamlit as st
 import sqlite3
 import bcrypt
 from db import inicializar_banco
-from auth_utils import (
-    gerar_token,
-    validar_token,
-    salvar_token_local,
-    carregar_token_local,
-    limpar_token_local
-)
-
 
 def tela_login():
     # Inicializa o banco de dados
     inicializar_banco()
-
-    # 🔁 Verifica se já existe token salvo e válido
-    token = carregar_token_local()
-    if token:
-        email, fisio = validar_token(token)
-        if email and fisio:
-            st.session_state["usuario_logado"] = email
-            st.session_state["fisioterapeuta"] = fisio
-            st.session_state["token"] = token
-            st.session_state["tela"] = "agenda"
-            st.success(f"🔓 Sessão restaurada para {email}")
-            return
 
     # Título da página
     st.title("🔐 Login")
@@ -34,7 +14,7 @@ def tela_login():
     email = st.text_input("Email", key="login_email")
     senha = st.text_input("Senha", type="password", key="login_senha")
 
-    # Função para autenticar usuário e gerar token
+    # Função para autenticar usuário
     def autenticar_usuario(email, senha_digitada):
         conn = sqlite3.connect("agenda.db")
         cursor = conn.cursor()
@@ -45,11 +25,8 @@ def tela_login():
         if resultado:
             senha_hash, fisioterapeuta = resultado
             if bcrypt.checkpw(senha_digitada.encode(), senha_hash):
-                token = gerar_token(email, fisioterapeuta)
-                salvar_token_local(token)
                 st.session_state["usuario_logado"] = email
                 st.session_state["fisioterapeuta"] = fisioterapeuta
-                st.session_state["token"] = token
                 return True
         return False
 
@@ -71,6 +48,5 @@ def tela_login():
     # 🚪 Botão de logout (opcional, se já estiver logado)
     if "usuario_logado" in st.session_state:
         if st.button("Sair"):
-            limpar_token_local()
             st.session_state.clear()
             st.rerun()

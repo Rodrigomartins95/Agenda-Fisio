@@ -31,7 +31,7 @@ def limpar_sessao():
 
 
 
-def tela_login():
+def autenticar_usuario():
     st.title("🔐 Login")
     email = st.text_input("E-mail")
     senha = st.text_input("Senha", type="password")

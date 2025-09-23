@@ -218,3 +218,25 @@ def deletar_paciente(paciente_id):
     cursor.execute("DELETE FROM pacientes WHERE id = ?", (paciente_id,))
     conn.commit()
     conn.close()
+
+
+# ✏️ Editar atendimento
+def editar_atendimento(paciente_id, data_antiga, hora_antiga, nova_data, nova_hora, novo_tipo):
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE atendimentos
+        SET data = ?, hora = ?, tipo = ?
+        WHERE paciente_id = ? AND data = ? AND hora = ?
+    """, (nova_data, nova_hora, novo_tipo, paciente_id, data_antiga, hora_antiga))
+    conn.commit()
+    conn.close()
+
+# 🔍 Buscar paciente por nome
+def buscar_paciente_id_por_nome(nome):
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM pacientes WHERE nome = ?", (nome,))
+    resultado = cursor.fetchone()
+    conn.close()
+    return resultado[0] if resultado else None

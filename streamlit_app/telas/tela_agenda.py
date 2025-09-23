@@ -1,7 +1,13 @@
 from streamlit_calendar import calendar
 import streamlit as st
 import datetime
-from db import buscar_atendimentos_por_offset, excluir_atendimento, limpar_atendimentos
+from db import (
+    buscar_atendimentos_por_offset,
+    excluir_atendimento,
+    limpar_atendimentos,
+    editar_atendimento,
+    buscar_paciente_id_por_nome
+)
 
 def tela_agenda():
     if "usuario_logado" not in st.session_state:
@@ -11,7 +17,6 @@ def tela_agenda():
     st.set_page_config(page_title="Agenda Semanal", layout="wide")
     st.title("📅 Agenda da Semana")
 
-    # 🔄 Seletor de semana
     offset = st.slider("Semana", min_value=0, max_value=12, value=0, help="Escolha a semana para visualizar")
     atendimentos, inicio, fim = buscar_atendimentos_por_offset(offset)
 
@@ -37,7 +42,7 @@ def tela_agenda():
                         "paciente": nome,
                         "tipo": tipo,
                         "data": data,
-                        "hora": hora_formatada
+                        "hora": hora_formatada,
                     }
                 })
             except Exception as e:
@@ -53,7 +58,7 @@ def tela_agenda():
             "right": "dayGridMonth,timeGridWeek,timeGridDay"
         },
         "slotMinTime": "07:00:00",
-        "slotMaxTime": "20:00:00"
+        "slotMaxTime": "23:00:00"
     }
 
     clicked_event = calendar(events=eventos, options=calendar_options)
@@ -72,19 +77,35 @@ def tela_agenda():
             st.write(f"**Data:** {data}")
             st.write(f"**Hora:** {hora}")
 
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("✏️ Editar atendimento"):
-                    st.warning("Função de edição ainda não implementada.")
-            with col2:
-                if st.button("🗑️ Excluir atendimento"):
-                    confirm = st.checkbox("Confirmar exclusão")
-                    if confirm:
-                        excluir_atendimento(paciente, data, hora)
-                        st.success("✅ Atendimento excluído com sucesso!")
+            with st.form("form_editar_atendimento"):
+                nova_data = st.date_input("Nova data", value=datetime.date.fromisoformat(data))
+                nova_hora = st.time_input("Nova hora", value=datetime.time.fromisoformat(hora))
+                novo_tipo = st.selectbox("Novo tipo", ["Consulta", "Retorno", "Sessão"], index=["Consulta", "Retorno", "Sessão"].index(tipo))
+
+                submitted = st.form_submit_button("💾 Salvar alterações")
+                if submitted:
+                    paciente_id = buscar_paciente_id_por_nome(paciente)
+                    if paciente_id is None:
+                        st.error("❌ Paciente não encontrado no banco.")
+                    else:
+                        editar_atendimento(
+                            paciente_id=paciente_id,
+                            data_antiga=data,
+                            hora_antiga=hora,
+                            nova_data=str(nova_data),
+                            nova_hora=nova_hora.strftime("%H:%M:%S"),
+                            novo_tipo=novo_tipo
+                        )
+                        st.success("✅ Atendimento atualizado com sucesso!")
                         st.rerun()
 
-    # 🧹 Botão de limpeza fora do bloco de evento
+            if st.button("🗑️ Excluir atendimento"):
+                confirm = st.checkbox("Confirmar exclusão")
+                if confirm:
+                    excluir_atendimento(paciente, data, hora)
+                    st.success("✅ Atendimento excluído com sucesso!")
+                    st.rerun()
+
     st.markdown("### 🧹 Limpeza de atendimentos")
     if st.button("Limpar atendimentos sem paciente"):
         limpar_atendimentos()

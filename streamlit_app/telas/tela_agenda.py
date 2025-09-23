@@ -1,7 +1,7 @@
 from streamlit_calendar import calendar
 import streamlit as st
 import datetime
-from db import buscar_atendimentos_por_offset, excluir_atendimento, limpar_atendimentos_orfaos
+from db import buscar_atendimentos_por_offset, excluir_atendimento, limpar_atendimentos
 
 def tela_agenda():
     if "usuario_logado" not in st.session_state:
@@ -85,8 +85,8 @@ def tela_agenda():
                         st.rerun()
 
     # 🧹 Botão de limpeza fora do bloco de evento
-    st.markdown("### 🧹 Limpeza de atendimentos órfãos")
+    st.markdown("### 🧹 Limpeza de atendimentos")
     if st.button("Limpar atendimentos sem paciente"):
-        limpar_atendimentos_orfaos()
-        st.success("✅ Atendimentos órfãos removidos com sucesso!")
+        limpar_atendimentos()
+        st.success("✅ Atendimentos removidos com sucesso!")
         st.rerun()

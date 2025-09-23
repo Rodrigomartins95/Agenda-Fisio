@@ -188,8 +188,9 @@ def excluir_paciente(paciente_id):
     conn.commit()
     conn.close()
 
-# 🧹 Limpar atendimentos órfãos
-def limpar_atendimentos_orfaos():
+#  🧹 Remove atendimentos que não estão vinculados a pacientes existentes
+
+def limpar_atendimentos():
     conn = conectar()
     cursor = conn.cursor()
     cursor.execute("""
@@ -198,6 +199,7 @@ def limpar_atendimentos_orfaos():
     """)
     conn.commit()
     conn.close()
+
 
 # ✏️ Editar paciente
 def editar_paciente(paciente_id, nome, telefone, observacoes):

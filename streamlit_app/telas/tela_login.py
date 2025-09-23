@@ -2,7 +2,7 @@ import streamlit as st
 import sqlite3
 import bcrypt
 from db import inicializar_banco
-from streamlit_app.auth_utils import (
+from auth_utils import (
     gerar_token,
     validar_token,
     salvar_token_local,

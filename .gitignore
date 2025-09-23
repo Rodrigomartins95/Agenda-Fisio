@@ -1,0 +1,25 @@
+# Ignorar virtualenv
+venv/
+
+# Ignorar arquivos de cache Python
+__pycache__/
+*.pyc
+
+# Ignorar banco de dados local
+agenda.db
+streamlit_app/agenda.db
+streamlit_app/usuarios.db
+
+# Ignorar arquivos de ambiente
+streamlit_app/.env
+
+# Ignorar configurações do Streamlit
+streamlit_app/.streamlit/
+
+# Ignorar arquivos temporários
+*.log
+*.tmp
+
+# Ignorar arquivos de sistema
+.DS_Store
+Thumbs.db

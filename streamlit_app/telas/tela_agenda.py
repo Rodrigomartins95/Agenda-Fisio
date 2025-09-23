@@ -31,8 +31,13 @@ def tela_agenda():
         for atendimento in atendimentos:
             try:
                 nome, data, hora, tipo = atendimento
-                hora_formatada = hora if hora and len(hora.split(":")) == 3 else f"{hora}:00" if hora else "00:00:00"
+
+                if not all([nome, data, hora, tipo]):
+                    continue  # pula atendimentos incompletos
+
+                hora_formatada = hora if len(hora.split(":")) == 3 else f"{hora}:00"
                 dt_str = f"{data}T{hora_formatada}"
+
                 eventos.append({
                     "title": f"{tipo}: {nome}",
                     "start": dt_str,

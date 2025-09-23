@@ -1,7 +1,8 @@
 import sqlite3
 import bcrypt
 import os
-from datetime import date, timedelta
+from datetime import date, timedelta,datetime
+import datetime
 
 # 🔧 Conexão com o banco
 def conectar():
@@ -114,21 +115,21 @@ def buscar_atendimentos_por_offset(offset):
     conn = conectar()
     cursor = conn.cursor()
 
-    hoje = date.today()
-    inicio_semana = hoje + timedelta(weeks=offset, days=-hoje.weekday())
-    fim_semana = inicio_semana + timedelta(days=6)
+    hoje = datetime.date.today()
+    inicio_semana = hoje + datetime.timedelta(weeks=offset)
+    fim_semana = inicio_semana + datetime.timedelta(days=6)
 
     cursor.execute("""
-        SELECT pacientes.nome, data, hora, tipo
+        SELECT pacientes.nome, atendimentos.data, atendimentos.hora, atendimentos.tipo
         FROM atendimentos
         JOIN pacientes ON atendimentos.paciente_id = pacientes.id
-        WHERE data BETWEEN ? AND ?
-        ORDER BY data, hora
+        WHERE atendimentos.data BETWEEN ? AND ?
+        ORDER BY atendimentos.data, atendimentos.hora
     """, (str(inicio_semana), str(fim_semana)))
-    resultado = cursor.fetchall()
-    conn.close()
-    return resultado, str(inicio_semana), str(fim_semana)
 
+    atendimentos = cursor.fetchall()
+    conn.close()
+    return atendimentos, inicio_semana, fim_semana
 # 🗓️ Inserir atendimento
 def inserir_atendimento(paciente_id, data, hora, tipo):
     conn = conectar()

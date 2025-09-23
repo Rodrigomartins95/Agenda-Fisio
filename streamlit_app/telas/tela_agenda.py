@@ -67,6 +67,7 @@ def tela_agenda():
     }
 
     clicked_event = calendar(events=eventos, options=calendar_options)
+    st.write("🧪 Evento clicado:", clicked_event)
 
     if clicked_event and clicked_event.get("extendedProps"):
         props = clicked_event["extendedProps"]

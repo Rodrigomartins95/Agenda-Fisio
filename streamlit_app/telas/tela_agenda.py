@@ -31,7 +31,7 @@ def tela_agenda():
         for atendimento in atendimentos:
             try:
                 nome, data, hora, tipo = atendimento
-                hora_formatada = hora if len(hora.split(":")) == 3 else f"{hora}:00"
+                hora_formatada = hora if hora and len(hora.split(":")) == 3 else f"{hora}:00" if hora else "00:00:00"
                 dt_str = f"{data}T{hora_formatada}"
                 eventos.append({
                     "title": f"{tipo}: {nome}",
@@ -75,22 +75,31 @@ def tela_agenda():
             st.write(f"**Paciente:** {paciente}")
             st.write(f"**Tipo:** {tipo}")
 
+            # 🛡️ Proteção contra erro de data
             try:
-                data_formatada = data.split("T")[0] if isinstance(data, str) and "T" in data else data
-                data_obj = datetime.date.fromisoformat(data_formatada)
+                if isinstance(data, str):
+                    data_formatada = data.split("T")[0] if "T" in data else data
+                    data_obj = datetime.date.fromisoformat(data_formatada)
+                elif isinstance(data, datetime.date):
+                    data_obj = data
+                else:
+                    raise ValueError("Formato de data inválido")
                 st.write(f"**Data:** {data_obj.strftime('%d-%m-%Y')}")
             except Exception as e:
-                st.write(f"**Data:** {data} (formato inválido)")
+                st.write(f"**Data:** {data} (inválida)")
                 st.error(f"❌ Erro ao formatar a data: {e}")
+                data_obj = datetime.date.today()
 
-            st.write(f"**Hora:** {hora}")
+            st.write(f"**Hora:** {hora if hora else '00:00'}")
 
             with st.form("form_editar_atendimento"):
                 try:
                     nova_data = st.date_input("Nova data", value=data_obj)
 
                     hora_formatada = hora.split("T")[-1] if isinstance(hora, str) and "T" in hora else hora
-                    if len(hora_formatada.split(":")) == 2:
+                    if not hora_formatada:
+                        hora_formatada = "00:00:00"
+                    elif len(hora_formatada.split(":")) == 2:
                         hora_formatada += ":00"
                     nova_hora = st.time_input("Nova hora", value=datetime.time.fromisoformat(hora_formatada))
 

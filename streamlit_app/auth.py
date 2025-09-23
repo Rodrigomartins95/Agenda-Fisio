@@ -8,6 +8,29 @@ load_dotenv()
 
 
 
+
+import json
+import os
+
+SESSAO_PATH = "sessao.json"
+
+def salvar_sessao(email):
+    with open(SESSAO_PATH, "w") as f:
+        json.dump({"email": email}, f)
+
+def carregar_sessao():
+    if os.path.exists(SESSAO_PATH):
+        with open(SESSAO_PATH, "r") as f:
+            dados = json.load(f)
+            return dados.get("email")
+    return None
+
+def limpar_sessao():
+    if os.path.exists(SESSAO_PATH):
+        os.remove(SESSAO_PATH)
+
+
+
 def tela_login():
     st.title("🔐 Login")
     email = st.text_input("E-mail")

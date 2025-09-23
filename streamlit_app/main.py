@@ -1,21 +1,26 @@
 import streamlit as st
+
+# 🔧 Banco e setup
 from db import inicializar_banco
-from telas import tela_inicio  # Tela inicial
-from telas import tela_login
-from telas import tela_cadastro  # Cadastro de usuário
-from telas import tela_agenda
-from telas import tela_cadastro_paciente
-from telas import tela_lista_pacientes
-from telas import tela_historico
-
 from setup import verificar_banco
+
+# 🧭 Telas
+from telas import (
+    tela_inicio,
+    tela_login,
+    tela_cadastro,
+    tela_agenda,
+    tela_cadastro_paciente,
+    tela_lista_pacientes,
+    tela_historico,
+    tela_paciente
+)
+
+# ✅ Inicialização
 verificar_banco()
-
-
-# 🔧 Inicializa banco
 inicializar_banco()
 
-# 🧭 Estado inicial
+# 🔁 Estado inicial
 if "tela" not in st.session_state:
     st.session_state["tela"] = "inicio"
 
@@ -32,13 +37,15 @@ if "usuario_logado" in st.session_state:
         if st.button("➕ Cadastrar Paciente"):
             st.session_state["tela"] = "cadastro_paciente"
             st.rerun()
-        if st.button("Ver Historico"):
+        if st.button("📁 Histórico"):
             st.session_state["tela"] = "lista_historico"
             st.rerun()
-        if st.button("Paciente"):
+        if st.button("👤 Paciente"):
             st.session_state["tela"] = "tela_paciente"
             st.rerun()
         if st.button("🚪 Sair"):
+            from auth_utils import limpar_token_local
+            limpar_token_local()
             st.session_state.clear()
             st.rerun()
 
@@ -53,20 +60,54 @@ elif tela == "login":
 elif tela == "cadastro":
     tela_cadastro()
 
-# Telas protegidas (exigem login)
-elif tela in ["agenda", "lista", "cadastro_paciente"]:
+# Telas protegidas
+elif tela == "agenda":
     if "usuario_logado" in st.session_state:
-        if tela == "agenda":
-            tela_agenda()
-        elif tela == "lista":
-            tela_lista_pacientes()
-        elif tela == "cadastro_paciente":
-            tela_cadastro_paciente()
+        tela_agenda()
     else:
-        # Evita renderizar tela protegida sem login
-        if st.button("🔐 Ir para Login"):
+        st.warning("🔐 Você precisa estar logado para acessar a agenda.")
+        if st.button("Ir para Login"):
             st.session_state["tela"] = "login"
             st.rerun()
-        elif st.button("⬅️ Voltar para Login"):
+
+elif tela == "lista":
+    if "usuario_logado" in st.session_state:
+        tela_lista_pacientes()
+    else:
+        st.warning("🔐 Você precisa estar logado para acessar a lista.")
+        if st.button("Ir para Login"):
             st.session_state["tela"] = "login"
             st.rerun()
+
+elif tela == "cadastro_paciente":
+    if "usuario_logado" in st.session_state:
+        tela_cadastro_paciente()
+    else:
+        st.warning("🔐 Você precisa estar logado para cadastrar pacientes.")
+        if st.button("Ir para Login"):
+            st.session_state["tela"] = "login"
+            st.rerun()
+
+elif tela == "lista_historico":
+    if "usuario_logado" in st.session_state:
+        tela_historico()
+    else:
+        st.warning("🔐 Você precisa estar logado para ver o histórico.")
+        if st.button("Ir para Login"):
+            st.session_state["tela"] = "login"
+            st.rerun()
+
+elif tela == "tela_paciente":
+    if "usuario_logado" in st.session_state:
+        tela_paciente()
+    else:
+        st.warning("🔐 Você precisa estar logado para acessar o paciente.")
+        if st.button("Ir para Login"):
+            st.session_state["tela"] = "login"
+            st.rerun()
+
+# 🔚 Fallback
+else:
+    st.error("❌ Tela não reconhecida.")
+    st.session_state["tela"] = "inicio"
+    st.rerun()

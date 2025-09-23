@@ -15,6 +15,12 @@ def tela_agenda():
     offset = st.slider("Semana", min_value=0, max_value=12, value=0, help="Escolha a semana para visualizar")
     atendimentos, inicio, fim = buscar_atendimentos_por_offset(offset)
 
+    st.markdown(f"📆 Semana de **{inicio}** até **{fim}**")
+
+    # 🛠️ Painel de Debug
+    with st.expander("🛠️ Painel de Debug"):
+        st.write("📆 Intervalo da semana:", {"início": inicio, "fim": fim})
+        st.write("📋 Atendimentos da semana:", atendimentos)
 
     cores_por_tipo = {
         "Consulta": "#90caf9",
@@ -24,9 +30,9 @@ def tela_agenda():
 
     eventos = []
     if atendimentos:
-        for nome, data, hora, tipo in atendimentos:
+        for atendimento in atendimentos:
             try:
-                # 🕒 Garantir formato ISO completo
+                nome, data, hora, tipo = atendimento
                 hora_formatada = hora if len(hora.split(":")) == 3 else f"{hora}:00"
                 dt_str = f"{data}T{hora_formatada}"
                 eventos.append({
@@ -42,14 +48,17 @@ def tela_agenda():
                     }
                 })
             except Exception as e:
-                st.error(f"Erro ao processar evento: {e}")
-                continue
+                st.error(f"Erro ao montar evento: {e}")
+    # 🧪 Mostrar eventos gerados
+    with st.expander("📦 Eventos enviados ao calendário"):
+        st.write("📅 Eventos:", eventos)
+        st.json(eventos)
 
     st.markdown("### 🗓️ Visualização em calendário")
 
     calendar_options = {
         "initialView": "timeGridWeek",
-        "locale": "pt-br",  # 🌍 idioma português
+        "locale": "pt-br",
         "editable": False,
         "headerToolbar": {
             "left": "prev,next today",
@@ -59,7 +68,6 @@ def tela_agenda():
         "slotMinTime": "07:00:00",
         "slotMaxTime": "20:00:00"
     }
-
 
     clicked_event = calendar(events=eventos, options=calendar_options)
 

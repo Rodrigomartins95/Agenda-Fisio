@@ -83,23 +83,26 @@ def inserir_atendimento(nome, data, hora, tipo):
 
 # 📅 Buscar atendimentos por semana (offset = 0 é semana atual)
 def buscar_atendimentos_por_offset(offset):
+    import sqlite3
+    from datetime import date, timedelta
+
     conn = conectar()
     cursor = conn.cursor()
+
+    # Calcular início e fim da semana com base no offset
+    hoje = date.today()
+    inicio_semana = hoje + timedelta(weeks=offset, days=-hoje.weekday())
+    fim_semana = inicio_semana + timedelta(days=6)
+
     cursor.execute("""
         SELECT nome, data, hora, tipo FROM atendimentos
-        WHERE strftime('%W', data) = strftime('%W', date('now', ? || ' weeks'))
+        WHERE data BETWEEN ? AND ?
         ORDER BY data, hora
-    """, (offset,))
+    """, (str(inicio_semana), str(fim_semana)))
     resultado = cursor.fetchall()
 
-    cursor.execute("""
-        SELECT MIN(data), MAX(data) FROM atendimentos
-        WHERE strftime('%W', data) = strftime('%W', date('now', ? || ' weeks'))
-    """, (offset,))
-    inicio, fim = cursor.fetchone()
-
     conn.close()
-    return resultado, inicio, fim
+    return resultado, str(inicio_semana), str(fim_semana)
 
 # 📜 Histórico completo
 def listar_historico():
@@ -153,7 +156,7 @@ def inicializar_banco():
 
     conn.commit()
     conn.close()
-    
+
 # ❌ Excluir atendimento
 def excluir_atendimento(nome, data, hora):
     conn = conectar()

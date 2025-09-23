@@ -74,27 +74,31 @@ def tela_agenda():
         with st.container():
             st.write(f"**Paciente:** {paciente}")
             st.write(f"**Tipo:** {tipo}")
-            st.write(f"**Data:** {datetime.date.fromisoformat(data).strftime('%d-%m-%Y')}")
+
+            try:
+                data_formatada = data.split("T")[0] if isinstance(data, str) and "T" in data else data
+                data_obj = datetime.date.fromisoformat(data_formatada)
+                st.write(f"**Data:** {data_obj.strftime('%d-%m-%Y')}")
+            except Exception as e:
+                st.write(f"**Data:** {data} (formato inválido)")
+                st.error(f"❌ Erro ao formatar a data: {e}")
+
             st.write(f"**Hora:** {hora}")
 
             with st.form("form_editar_atendimento"):
                 try:
-                    if not isinstance(data, str):
-                        raise TypeError("Data não é uma string ISO válida")
+                    nova_data = st.date_input("Nova data", value=data_obj)
 
-                    data_formatada = data.split("T")[0] if "T" in data else data
-                    nova_data = st.date_input("Nova data", value=datetime.date.fromisoformat(data_formatada))
-
-                    hora_formatada = hora.split("T")[-1] if "T" in hora else hora
+                    hora_formatada = hora.split("T")[-1] if isinstance(hora, str) and "T" in hora else hora
                     if len(hora_formatada.split(":")) == 2:
                         hora_formatada += ":00"
                     nova_hora = st.time_input("Nova hora", value=datetime.time.fromisoformat(hora_formatada))
 
-                    novo_tipo = st.selectbox("Novo tipo", ["Consulta", "Retorno", "Sessão"], index=["Consulta", "Retorno", "Sessão"].index(tipo))
+                    novo_tipo = st.selectbox("Novo tipo", ["Consulta", "Retorno", "Sessão"],
+                                             index=["Consulta", "Retorno", "Sessão"].index(tipo))
                 except Exception as e:
                     st.error(f"❌ Erro ao interpretar data ou hora: {e}")
                     st.stop()
-
 
                 submitted = st.form_submit_button("💾 Salvar alterações")
                 if submitted:
@@ -106,7 +110,7 @@ def tela_agenda():
                             paciente_id=paciente_id,
                             data_antiga=data,
                             hora_antiga=hora,
-                            nova_data=nova_data.strftime("%Y-%m-%d"),  # salva no formato ISO
+                            nova_data=nova_data.strftime("%Y-%m-%d"),
                             nova_hora=nova_hora.strftime("%H:%M:%S"),
                             novo_tipo=novo_tipo
                         )

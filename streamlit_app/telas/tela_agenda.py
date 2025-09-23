@@ -63,39 +63,37 @@ def tela_agenda():
 
     clicked_event = calendar(events=eventos, options=calendar_options)
 
-    if clicked_event:
-        props = clicked_event.get("extendedProps", {})
+    if clicked_event and clicked_event.get("extendedProps"):
+        props = clicked_event["extendedProps"]
         paciente = props.get("paciente")
         tipo = props.get("tipo")
         data = props.get("data")
         hora = props.get("hora")
 
-        st.markdown("### 📋 Detalhes do atendimento")
-        with st.container():
-            st.write(f"**Paciente:** {paciente if paciente else 'Não informado'}")
-            st.write(f"**Tipo:** {tipo if tipo else 'Não informado'}")
+        if paciente or tipo or data or hora:
+            st.markdown("### 📋 Detalhes do atendimento")
+            with st.container():
+                st.write(f"**Paciente:** {paciente if paciente else 'Não informado'}")
+                st.write(f"**Tipo:** {tipo if tipo else 'Não informado'}")
 
-            # Proteção contra data inválida
-            try:
-                if isinstance(data, str) and data:
-                    data_formatada = data.split("T")[0] if "T" in data else data
-                    data_obj = datetime.date.fromisoformat(data_formatada)
-                elif isinstance(data, datetime.date):
-                    data_obj = data
-                else:
-                    raise ValueError("Formato de data inválido")
-
-                st.write(f"**Data:** {data_obj.strftime('%d-%m-%Y')}")
-            except Exception as e:
-                st.write("**Data:** Não informada ou inválida")
-                st.error(f"❌ Erro ao formatar a data: {e}")
-                data_obj = datetime.date.today()
-
-            st.write(f"**Hora:** {hora if hora else 'Não informada'}")
-
-            
-            with st.form("form_editar_atendimento"):
                 try:
+                    if isinstance(data, str) and data:
+                        data_formatada = data.split("T")[0] if "T" in data else data
+                        data_obj = datetime.date.fromisoformat(data_formatada)
+                    elif isinstance(data, datetime.date):
+                        data_obj = data
+                    else:
+                        raise ValueError("Formato de data inválido")
+
+                    st.write(f"**Data:** {data_obj.strftime('%d-%m-%Y')}")
+                except Exception as e:
+                    st.write("**Data:** inválida")
+                    st.error(f"❌ Erro ao formatar a data: {e}")
+                    data_obj = datetime.date.today()
+
+                st.write(f"**Hora:** {hora if hora else 'Não informada'}")
+
+                with st.form("form_editar_atendimento"):
                     nova_data = st.date_input("Nova data", value=data_obj)
 
                     hora_formatada = hora.split("T")[-1] if isinstance(hora, str) and "T" in hora else hora
@@ -108,33 +106,30 @@ def tela_agenda():
                     opcoes_tipo = ["Consulta", "Retorno", "Sessão"]
                     indice_tipo = opcoes_tipo.index(tipo) if tipo in opcoes_tipo else 0
                     novo_tipo = st.selectbox("Novo tipo", opcoes_tipo, index=indice_tipo)
-                except Exception as e:
-                    st.error(f"❌ Erro ao interpretar data ou hora: {e}")
-                    st.stop()
 
-                submitted = st.form_submit_button("💾 Salvar alterações")
-                if submitted:
-                    paciente_id = buscar_paciente_id_por_nome(paciente)
-                    if paciente_id is None:
-                        st.error("❌ Paciente não encontrado no banco.")
-                    else:
-                        editar_atendimento(
-                            paciente_id=paciente_id,
-                            data_antiga=data,
-                            hora_antiga=hora,
-                            nova_data=nova_data.strftime("%Y-%m-%d"),
-                            nova_hora=nova_hora.strftime("%H:%M:%S"),
-                            novo_tipo=novo_tipo
-                        )
-                        st.success("✅ Atendimento atualizado com sucesso!")
+                    submitted = st.form_submit_button("💾 Salvar alterações")
+                    if submitted:
+                        paciente_id = buscar_paciente_id_por_nome(paciente)
+                        if paciente_id is None:
+                            st.error("❌ Paciente não encontrado no banco.")
+                        else:
+                            editar_atendimento(
+                                paciente_id=paciente_id,
+                                data_antiga=data,
+                                hora_antiga=hora,
+                                nova_data=nova_data.strftime("%Y-%m-%d"),
+                                nova_hora=nova_hora.strftime("%H:%M:%S"),
+                                novo_tipo=novo_tipo
+                            )
+                            st.success("✅ Atendimento atualizado com sucesso!")
+                            st.rerun()
+
+                if st.button("🗑️ Excluir atendimento"):
+                    confirm = st.checkbox("Confirmar exclusão")
+                    if confirm:
+                        excluir_atendimento(paciente, data, hora)
+                        st.success("✅ Atendimento excluído com sucesso!")
                         st.rerun()
-
-            if st.button("🗑️ Excluir atendimento"):
-                confirm = st.checkbox("Confirmar exclusão")
-                if confirm:
-                    excluir_atendimento(paciente, data, hora)
-                    st.success("✅ Atendimento excluído com sucesso!")
-                    st.rerun()
 
     st.markdown("### 🧹 Limpeza de atendimentos")
     if st.button("Limpar atendimentos sem paciente"):
